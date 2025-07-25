@@ -1,0 +1,20 @@
+ /* Estilos para remover margens e esconder o cursor do mouse */
+ body {
+     margin: 0;
+     cursor: none;
+ }
+
+ canvas {
+     display: block;
+ }
+
+ /* Estilo para a interface de pontuação */
+ #score {
+     position: absolute;
+     top: 10px;
+     left: 10px;
+     color: white;
+     font-size: 24px;
+     font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+     text-shadow: 2px 2px 4px #000000;
+ }
