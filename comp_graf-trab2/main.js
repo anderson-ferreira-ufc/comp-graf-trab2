@@ -1,24 +1,110 @@
 import * as THREE from 'three';
 import * as CANNON from 'cannon-es';
 import { GUI } from 'dat.gui';
+import { GLTFLoader } from 'three/examples/jsm/loaders/GLTFLoader.js';
 
 // 1. CONFIGURAÇÃO BÁSICA (CENA, CÂMERA, RENDERIZADOR, LUZ)
 
+// Cor do céu para o fundo e a névoa
+const corDoCeu = 0x4A7A8C; // Um tom de azul acinzentado para o fim de tarde
+
 const scene = new THREE.Scene();
-scene.background = new THREE.Color(0x111111); // Fundo cinza escuro
+scene.background = new THREE.Color(corDoCeu);
+scene.fog = new THREE.Fog(corDoCeu, 30, 150); // A névoa agora combina com o céu
 
 const camera = new THREE.PerspectiveCamera(75, window.innerWidth / window.innerHeight, 0.1, 1000);
-camera.position.set(0, 5, 35); // Posição da câmera para ver a cena
+camera.position.set(0, 5, 35);
 
-const renderer = new THREE.WebGLRenderer({ antialias: true }); // antialias suaviza as bordas
+const renderer = new THREE.WebGLRenderer({ antialias: true });
 renderer.setSize(window.innerWidth, window.innerHeight);
+renderer.shadowMap.enabled = true;
 document.body.appendChild(renderer.domElement);
 
-const ambientLight = new THREE.AmbientLight(0xffffff, 0.6);
-scene.add(ambientLight);
-const directionalLight = new THREE.DirectionalLight(0xffffff, 1.0);
-directionalLight.position.set(5, 15, 10);
+// Luz Hemisférica: Simula a luz do céu (azulada) e a luz rebatida do chão (amarronzada)
+const hemisphereLight = new THREE.HemisphereLight(corDoCeu, 0x444422, 1.0);
+scene.add(hemisphereLight);
+
+// Luz Direcional: O nosso "sol" de fim de tarde, agora um pouco mais forte
+const directionalLight = new THREE.DirectionalLight(0xffd580, 2.5); // Cor quente e intensidade maior
+directionalLight.position.set(-30, 25, 20); // Posição mais angulada para sombras longas
+directionalLight.castShadow = true;
+directionalLight.shadow.camera.left = -100;
+directionalLight.shadow.camera.right = 100;
+directionalLight.shadow.camera.top = 100;
+directionalLight.shadow.camera.bottom = -100;
+directionalLight.shadow.camera.near = 0.5;
+directionalLight.shadow.camera.far = 500;
+directionalLight.shadow.bias = -0.001; 
 scene.add(directionalLight);
+
+const loader = new GLTFLoader();
+const textureLoader = new THREE.TextureLoader();
+
+// Lista dos modelos que compõem o seu cenário
+const sceneParts = [
+    'modelo3D/arvore_convertido.glb'
+];
+
+// Cria uma "promessa" de carregamento para cada modelo
+const loadPromises = sceneParts.map(path => {
+    return new Promise((resolve, reject) => {
+        loader.load(path, gltf => resolve(gltf), undefined, reject);
+    });
+});
+
+// Promise.all espera que todas as promessas sejam resolvidas
+Promise.all(loadPromises).then(loadedModels => {
+    // Agora, você pode adicionar cada parte à cena
+    const arvore = loadedModels[0].scene;
+    const escala = 250;
+
+    // Percorre todos os objetos dentro do modelo da árvore
+    arvore.traverse(function(child) {
+        if (child.isMesh) {
+            child.castShadow = true; // Cada parte da árvore projetará sombra
+            child.receiveShadow = true;
+        }
+    });
+
+    // Ajuste a posição, rotação e escala de cada parte individualmente
+    arvore.scale.set(escala, escala, escala);
+    arvore.rotation.x = (-15 * Math.PI) / 180;
+    arvore.position.set(-2, -18, -13);
+    scene.add(arvore);
+
+    const cloneFixa1 = arvore.clone();
+    cloneFixa1.scale.set(escala - 20, escala - 20, escala - 20);
+    cloneFixa1.rotation.y = (15 * Math.PI) / 180;
+    cloneFixa1.position.set(-42, -12, 11);
+
+    const cloneFixa2 = arvore.clone();
+    cloneFixa2.scale.set(escala - 20, escala - 20, escala - 20);
+    cloneFixa2.rotation.y = (15 * Math.PI) / 180;
+    cloneFixa2.position.set(42, -12, 11);
+
+    scene.add(cloneFixa1);
+    scene.add(cloneFixa2);
+
+    const numeroDeArvores = 17; // Defina quantas árvores extras você quer
+    for (let i = 0; i < numeroDeArvores; i++) {
+        const cloneDaArvore = arvore.clone(); // Cria uma cópia exata
+
+        // Define posições aleatórias para os clones
+        const x = (Math.random() - 0.5) * 200; // Posição X entre -100 e 100
+        const z = (Math.random() * -100) - 15; // Posição Z sempre atrás da árvore principal
+        cloneDaArvore.position.set(x, -18, z);
+
+        // Adiciona variação na rotação e escala para um look mais natural
+        cloneDaArvore.rotation.y = Math.random() * Math.PI * 2; // Rotação aleatória
+        cloneDaArvore.scale.set(escala, escala, escala);
+
+        scene.add(cloneDaArvore); // Adiciona o clone à cena
+    }
+
+
+}).catch(error => {
+    console.error("Erro ao carregar um ou mais modelos", error);
+});
 
 // 2. MUNDO DA FÍSICA (CANNON.JS)
 
@@ -27,7 +113,7 @@ const world = new CANNON.World({
 });
 
 // 3. ELEMENTOS DO JOGO (CHÃO, CESTA, BOLINHAS)
-
+let targetCestaX = 0;
 let score = 0;
 const scoreElement = document.getElementById('score');
 const objetosNoMundo = []; // Array para sincronizar objetos visuais e físicos
@@ -44,11 +130,12 @@ world.addBody(groundBody);
 
 // Malha visual para o chão
 const groundMesh = new THREE.Mesh(
-    new THREE.PlaneGeometry(100, 100),
-    new THREE.MeshStandardMaterial({ color: 0x444444 })
+    new THREE.PlaneGeometry(450, 300),
+    new THREE.MeshStandardMaterial({ color: 0x006400 })
 );
 groundMesh.rotation.x = -Math.PI / 2;
 groundMesh.position.y = -15;
+groundMesh.receiveShadow = true;
 scene.add(groundMesh);
 
 // --- CESTA ---
@@ -64,27 +151,32 @@ cestaBody.addShape(new CANNON.Box(new CANNON.Vec3(0.5, 2, 2.5)), new CANNON.Vec3
 cestaBody.position.y = -12;
 
 // Malha visual da cesta (correspondente ao corpo físico)
-const cestaMaterial = new THREE.MeshStandardMaterial({ color: 0x0088ff });
+const texturaCesta = textureLoader.load('images/cestaTextura.jpg');
+const cestaMaterial = new THREE.MeshStandardMaterial({ map: texturaCesta });
 const baseMesh = new THREE.Mesh(new THREE.BoxGeometry(10, 1, 5), cestaMaterial);
 const parede1Mesh = new THREE.Mesh(new THREE.BoxGeometry(1, 4, 5), cestaMaterial);
 parede1Mesh.position.set(-4.5, 2.5, 0);
 const parede2Mesh = new THREE.Mesh(new THREE.BoxGeometry(1, 4, 5), cestaMaterial);
 parede2Mesh.position.set(4.5, 2.5, 0);
+cestaGroup.castShadow = true;
 cestaGroup.add(baseMesh, parede1Mesh, parede2Mesh);
 
 // --- GERADOR DE BOLINHAS ---
-const ballMaterial = new THREE.MeshStandardMaterial({ color: 0xffffff, roughness: 0.1, metalness: 0.9 });
-const ballSpecialMaterial = new THREE.MeshStandardMaterial({ color: 0xffd700, roughness: 0.1, metalness: 1.0, emissive: 0x333300 }); // Dourada/Especial
+const texturaBola = textureLoader.load('images/bolaTextura.jpg');
+const ballMaterial = new THREE.MeshStandardMaterial({ map: texturaBola, color: 0xce2c1c, roughness: 0.1, metalness: 0.9 });
+const ballSpecialMaterial = new THREE.MeshStandardMaterial({ map: texturaBola , color: 0xe8e864, roughness: 0.1, metalness: 1.0, emissive: 0x333300 }); // Dourada/Especial
 
 function createBall() {
     const radius = 1;
+    const segments = 4;
     const isSpecial = Math.random() < 0.1; // 10% de chance de ser especial
 
     // Objeto Visual (Three.js)
     const ballMesh = new THREE.Mesh(
-        new THREE.SphereGeometry(radius),
+        new THREE.SphereGeometry(radius, segments, segments),
         isSpecial ? ballSpecialMaterial : ballMaterial
     );
+    ballMesh.castShadow = true;
     scene.add(ballMesh);
 
     // Corpo Físico (Cannon.js)
@@ -95,7 +187,11 @@ function createBall() {
             (Math.random() - 0.5) * 40, // Posição X aleatória na largura da "chuva"
             25, // Começa sempre no topo
             0
-        )
+        ),
+
+        ccdSpeedThreshold: 5, 
+        // Número de iterações do CCD para aumentar a precisão.
+        ccdIterations: 5
     });
     world.addBody(ballBody);
 
@@ -105,16 +201,48 @@ function createBall() {
 
     // Adiciona um "ouvinte" de evento de colisão para esta bolinha
     ballBody.addEventListener('collide', (event) => {
-        // Se a colisão for com a cesta e a bolinha ainda valer pontos...
-        if (event.body === cestaBody && ballBody.points > 0) {
-            score += ballBody.points;
-            scoreElement.innerText = `Pontos: ${score}`; // Atualiza o placar
-            ballBody.points = 0; // Zera os pontos para não contar de novo no mesmo quique
+        // Não queremos múltiplos timers para a mesma bolinha
+        if (ballBody.hasBeenHandled) return;
+
+        const contactTarget = event.body;
+        const ballObject = objetosNoMundo.find(obj => obj.body === ballBody);
+
+        if (contactTarget === cestaBody) {
+            // --- COLISÃO COM A CESTA ---
+            ballBody.hasBeenHandled = true; // Marca a bolinha para não processar de novo
+
+            if (ballBody.points > 0) {
+                score += ballBody.points;
+                scoreElement.innerText = `Pontos: ${score}`;
+                ballBody.points = 0;
+            }
+
+            // Inicia o efeito de desintegração após 2 segundos
+            setTimeout(() => {
+                removeBall(ballObject);
+            }, 6000); // 2 segundos
+
+        } else if (contactTarget === groundBody) {
+            // --- COLISÃO COM O CHÃO ---
+            ballBody.hasBeenHandled = true; // Marca a bolinha
+
+            // Inicia o efeito de desintegração após 5 segundos
+            setTimeout(() => {
+                removeBall(ballObject);
+            }, 5000); // 5 segundos
         }
     });
 
     objetosNoMundo.push({ mesh: ballMesh, body: ballBody });
-}
+};
+
+function removeBall(ballObject) {
+    if (ballObject && ballObject.body) {
+        world.removeBody(ballObject.body);
+        scene.remove(ballObject.mesh);
+        objetosNoMundo.splice(objetosNoMundo.indexOf(ballObject), 1);
+    }
+};
 
 // 4. CONTROLES E INTERATIVIDADE (MOUSE, GUI)
 
@@ -127,7 +255,7 @@ window.addEventListener('mousemove', (event) => {
     const pos = camera.position.clone().add(dir.multiplyScalar(distance));
 
     // Atualiza a posição do corpo físico da cesta, limitando o movimento
-    cestaBody.position.x = THREE.MathUtils.clamp(pos.x, -25, 25);
+    targetCestaX = THREE.MathUtils.clamp(pos.x, -25, 25);
 });
 
 // --- PAINEL DE CONTROLE DAT.GUI ---
@@ -155,8 +283,20 @@ const clock = new THREE.Clock();
 function animate() {
     requestAnimationFrame(animate);
 
+    const deltaTime = clock.getDelta();
+
+     // Calcula a diferença entre a posição alvo (do mouse) e a posição atual da cesta
+    const distanciaX = targetCestaX - cestaBody.position.x;
+
+    // Define uma velocidade proporcional à distância. O '10' é um fator de "força".
+    // Quanto maior o número, mais rápido a cesta seguirá o mouse.
+    const velocidadeX = distanciaX * 10;
+
+    // Aplica a velocidade ao corpo físico da cesta
+    cestaBody.velocity.x = velocidadeX;
+
     // 1. Atualiza o mundo da física
-    world.step(1 / 60, clock.getDelta());
+    world.step(1 / 60, deltaTime, 10);
 
     // 2. Sincroniza a posição da cesta (visual e física)
     cestaGroup.position.copy(cestaBody.position);
@@ -169,9 +309,17 @@ function animate() {
         obj.mesh.quaternion.copy(obj.body.quaternion);
 
         // Remove a bolinha se ela cair muito para baixo, para otimizar o jogo
-        if (obj.body.position.y < -20) {
-            world.removeBody(obj.body);
-            scene.remove(obj.mesh);
+        /*if (obj.body.position.y < -20 && !obj.removeTimer) {
+            // Bolinha caiu no chão e ainda não tem um timer
+            obj.removeTimer = setTimeout(() => {
+                // Função para remover a bolinha (criaremos abaixo)
+                fadeAndRemoveBall(obj);
+            }, 2000); // 5000 milissegundos = 5 segundos
+        }*/
+
+        // Remove a bolinha imediatamente se ela estiver MUITO abaixo (segurança)
+        if (obj.body.position.y < -100) {
+            removeBall(obj);
             objetosNoMundo.splice(i, 1);
         }
     }

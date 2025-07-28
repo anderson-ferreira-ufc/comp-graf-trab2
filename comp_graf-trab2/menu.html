@@ -1,0 +1,71 @@
+<!DOCTYPE html>
+<html lang="pt-br">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Cesta de Bolinhas</title>
+    <style>
+        /* CSS para deixar a tela bonita e centralizar a mensagem */
+        body, html {
+            margin: 0;
+            padding: 0;
+            height: 100%;
+            font-family: Arial, sans-serif;
+        }
+
+        .container-principal {
+            /* Define a imagem de fundo */
+            background-image: url("/comp_graf-trab2/images/Wallpaper.jpg");
+
+            /* Define a altura para ocupar 100% da altura da janela (viewport height) */
+            height: 100vh;
+
+            /* Faz a imagem cobrir toda a área do container, sem distorcer */
+            background-size: cover;
+
+            /* Centraliza a imagem no container */
+            background-position: center;
+
+            /* Impede que a imagem de fundo se repita */
+            background-repeat: no-repeat;
+            
+            /* Opcional: fixa a imagem para que ela não role com o conteúdo */
+            background-attachment: fixed;
+
+            /* Estilos para o conteúdo que ficará sobre a imagem */
+            color: white;
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+            align-items: center;
+        }
+
+        h1 {
+            font-size: 2em;
+            /* Efeito de pulsar para chamar a atenção */
+            animation: pulse 2s infinite; 
+        }
+
+        @keyframes pulse {
+            0% { transform: scale(1); }
+            50% { transform: scale(1.1); }
+            100% { transform: scale(1); }
+        }
+    </style>
+</head>
+<body>
+
+    <div class="container-principal">
+        <h1>Clique em qualquer lugar para começar</h1>
+    </div>
+
+    <script>
+        // Adiciona um "ouvinte de evento" que espera por um clique no documento inteiro.
+        document.addEventListener('click', function() {
+            // Quando o clique ocorrer, redireciona o navegador para a página do menu.
+            window.location.href = 'index.html'; 
+        });
+    </script>
+
+</body>
+</html>

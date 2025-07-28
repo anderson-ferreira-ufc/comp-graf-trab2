@@ -4,17 +4,31 @@
 <head>
     <meta charset="UTF-8">
     <title>Cesta de Bolinhas</title>
+    <style>
+        body {
+            /* Remove a margem externa padrão do corpo da página */
+            margin: 0;
+
+            /* Garante que não haja preenchimento interno */
+            padding: 0;
+
+            /* Esconde as barras de rolagem, caso algum elemento ultrapasse a tela */
+            overflow: hidden;
+        }
+    </style>
 </head>
 
 <body>
-    <div id="score">Pontos: 0</div>
+    <div id="score" style="position: absolute; top: 10px; left: 10px; color: white; font-size: 24px; font-family: Arial, sans-serif; /* Uma fonte limpa e universal */
+    z-index: 100;">Pontos: 0</div>
 
     <script type="importmap">
         {
             "imports": {
                 "three": "https://unpkg.com/three@0.166.1/build/three.module.js",
                 "cannon-es": "https://unpkg.com/cannon-es@0.20.0/dist/cannon-es.js",
-                "dat.gui": "https://unpkg.com/dat.gui@0.7.9/build/dat.gui.module.js"
+                "dat.gui": "https://unpkg.com/dat.gui@0.7.9/build/dat.gui.module.js",
+                "three/examples/jsm/loaders/GLTFLoader.js": "https://unpkg.com/three@0.166.1/examples/jsm/loaders/GLTFLoader.js"
             }
         }
     </script>
