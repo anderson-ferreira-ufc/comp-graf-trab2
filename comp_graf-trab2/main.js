@@ -167,19 +167,44 @@ cestaGroup.add(baseMesh, parede1Mesh, parede2Mesh);
 // --- GERADOR DE BOLINHAS ---
 const texturaBola = textureLoader.load('images/bolaTextura.jpg');
 const ballMaterial = new THREE.MeshStandardMaterial({ map: texturaBola, color: 0xce2c1c, roughness: 0.1, metalness: 0.9 });
-const ballSpecialMaterial = new THREE.MeshStandardMaterial({ map: texturaBola, color: 0xe8e864, roughness: 0.1, metalness: 1.0, emissive: 0x333300 }); // Dourada/Especial
+const ballSpecialMaterial = new THREE.MeshStandardMaterial({ map: texturaBola, color: 0xe8e864, roughness: 0.1, metalness: 1.0, emissive: 0x333300 });// Dourada/Especial
+const ballGlassesMaterial = new THREE.MeshStandardMaterial({
+    map: texturaBola,
+    color: 0x88CCEE,      // ou 0xA0E7E5, 0xC0F0F2
+    roughness: 0.05,
+    metalness: 0.1,
+    transparent: true,
+    opacity: 0.5         // ajuste entre 0.1 e 0.5 para mais ou menos “vidro”
+  });
+   // Glasses
 
 function createBall() {
     const radius = 1;
-    const segments = 4;
+    const segments = 5;
     const isSpecial = Math.random() < 0.1; // 10% de chance de ser especial
-
+    const isGlasses = Math.random() < 0.25; // 50% de chance de ser uma bola de vidro
     // Objeto Visual (Three.js)
     const ballMesh = new THREE.Mesh(
         new THREE.SphereGeometry(radius, segments, segments),
-        isSpecial ? ballSpecialMaterial : ballMaterial
+        isSpecial ? ballSpecialMaterial : isGlasses ? ballGlassesMaterial : ballMaterial
     );
     ballMesh.castShadow = true;
+    // Cria o caule
+    const stemGeom = new THREE.CylinderGeometry(0.05, 0.05, 0.4, 8);
+    const stemMat  = new THREE.MeshStandardMaterial({ color: 0x8B4513 });
+    const stemMesh = new THREE.Mesh(stemGeom, stemMat);
+    // posiciona o caule no topo da esfera
+    stemMesh.position.set(0, radius + 0.2, 0);
+    stemMesh.castShadow = true;
+     // Cria a folha e anexa ao caule
+     const leafGeom = new THREE.PlaneGeometry(0.3, 1);
+     const leafMat  = new THREE.MeshStandardMaterial({ color: 0x228B22, side: THREE.DoubleSide });
+     const leafMesh = new THREE.Mesh(leafGeom, leafMat);
+     // inclina e posiciona a folha sobre o caule
+     leafMesh.rotation.set(Math.PI / 4, 0, 0);
+     leafMesh.position.set(0.15, 0.15, 0);
+     stemMesh.add(leafMesh);
+     ballMesh.add(stemMesh);
     scene.add(ballMesh);
 
     // Corpo Físico (Cannon.js)
@@ -201,6 +226,7 @@ function createBall() {
     // Adiciona propriedades para a lógica do jogo
     ballBody.isBall = true;
     ballBody.points = isSpecial ? 5 : 1;
+    ballBody.isGlasses = isGlasses;
 
     // Adiciona um "ouvinte" de evento de colisão para esta bolinha
     ballBody.addEventListener('collide', (event) => {
@@ -229,6 +255,11 @@ function createBall() {
             // --- COLISÃO COM O CHÃO ---
             ballBody.hasBeenHandled = true; // Marca a bolinha
 
+            // Se for bola de vidro, perde 1 ponto
+            if (ballBody.isGlasses) {
+                score -= 1;
+                scoreElement.innerText = `Pontos: ${score}`;
+            }
             // Inicia o efeito de desintegração após 5 segundos
             setTimeout(() => {
                 removeBall(ballObject);
@@ -355,6 +386,17 @@ function animate() {
     }
     // 4. Renderiza a cena na tela
     renderer.render(scene, camera);
+
+    // --- Atualiza e remove partículas de explosão ---
+    for (let i = activeParticles.length - 1; i >= 0; i--) {
+        const particle = activeParticles[i];
+        particle.mesh.position.addScaledVector(particle.velocity, deltaTime);
+        particle.lifetime -= deltaTime;
+        if (particle.lifetime <= 0) {
+            scene.remove(particle.mesh);
+            activeParticles.splice(i, 1);
+        }
+    }
 }
 
 const pauseScreen = document.getElementById('pauseScreen');
