@@ -3,6 +3,7 @@ import * as CANNON from 'cannon-es';
 import { GUI } from 'dat.gui';
 import { GLTFLoader } from 'three/examples/jsm/loaders/GLTFLoader.js';
 
+
 // 1. CONFIGURAÇÃO BÁSICA (CENA, CÂMERA, RENDERIZADOR, LUZ)
 
 // Cor do céu para o fundo e a névoa
@@ -19,6 +20,8 @@ const renderer = new THREE.WebGLRenderer({ antialias: true });
 renderer.setSize(window.innerWidth, window.innerHeight);
 renderer.shadowMap.enabled = true;
 document.body.appendChild(renderer.domElement);
+let isPaused = false;
+const activeParticles = []; // Array para guardar as partículas da explosão
 
 // Luz Hemisférica: Simula a luz do céu (azulada) e a luz rebatida do chão (amarronzada)
 const hemisphereLight = new THREE.HemisphereLight(corDoCeu, 0x444422, 1.0);
@@ -34,7 +37,7 @@ directionalLight.shadow.camera.top = 100;
 directionalLight.shadow.camera.bottom = -100;
 directionalLight.shadow.camera.near = 0.5;
 directionalLight.shadow.camera.far = 500;
-directionalLight.shadow.bias = -0.001; 
+directionalLight.shadow.bias = -0.001;
 scene.add(directionalLight);
 
 const loader = new GLTFLoader();
@@ -59,7 +62,7 @@ Promise.all(loadPromises).then(loadedModels => {
     const escala = 250;
 
     // Percorre todos os objetos dentro do modelo da árvore
-    arvore.traverse(function(child) {
+    arvore.traverse(function (child) {
         if (child.isMesh) {
             child.castShadow = true; // Cada parte da árvore projetará sombra
             child.receiveShadow = true;
@@ -164,7 +167,7 @@ cestaGroup.add(baseMesh, parede1Mesh, parede2Mesh);
 // --- GERADOR DE BOLINHAS ---
 const texturaBola = textureLoader.load('images/bolaTextura.jpg');
 const ballMaterial = new THREE.MeshStandardMaterial({ map: texturaBola, color: 0xce2c1c, roughness: 0.1, metalness: 0.9 });
-const ballSpecialMaterial = new THREE.MeshStandardMaterial({ map: texturaBola , color: 0xe8e864, roughness: 0.1, metalness: 1.0, emissive: 0x333300 }); // Dourada/Especial
+const ballSpecialMaterial = new THREE.MeshStandardMaterial({ map: texturaBola, color: 0xe8e864, roughness: 0.1, metalness: 1.0, emissive: 0x333300 }); // Dourada/Especial
 
 function createBall() {
     const radius = 1;
@@ -189,7 +192,7 @@ function createBall() {
             0
         ),
 
-        ccdSpeedThreshold: 5, 
+        ccdSpeedThreshold: 5,
         // Número de iterações do CCD para aumentar a precisão.
         ccdIterations: 5
     });
@@ -216,11 +219,11 @@ function createBall() {
                 scoreElement.innerText = `Pontos: ${score}`;
                 ballBody.points = 0;
             }
-
+            createExplosion(ballBody.position, ballObject.mesh.material.color);
             // Inicia o efeito de desintegração após 2 segundos
             setTimeout(() => {
                 removeBall(ballObject);
-            }, 6000); // 2 segundos
+            }, 500); // 2 segundos
 
         } else if (contactTarget === groundBody) {
             // --- COLISÃO COM O CHÃO ---
@@ -235,6 +238,33 @@ function createBall() {
 
     objetosNoMundo.push({ mesh: ballMesh, body: ballBody });
 };
+
+function createExplosion(position, color) {
+    const particleCount = 20;
+    const particleMaterial = new THREE.MeshBasicMaterial({
+        color: color,
+        transparent: true
+    });
+
+    for (let i = 0; i < particleCount; i++) {
+        const particleGeometry = new THREE.BoxGeometry(0.2, 0.2, 0.2);
+        const particleMesh = new THREE.Mesh(particleGeometry, particleMaterial.clone());
+        particleMesh.position.copy(position);
+
+        const velocity = new THREE.Vector3(
+            (Math.random() - 0.5) * 15,
+            (Math.random() - 0.5) * 15,
+            (Math.random() - 0.5) * 15
+        );
+
+        activeParticles.push({
+            mesh: particleMesh,
+            velocity: velocity,
+            lifetime: Math.random() * 0.5 + 0.5 // Vida entre 0.5 e 1.0 segundos
+        });
+        scene.add(particleMesh);
+    }
+}
 
 function removeBall(ballObject) {
     if (ballObject && ballObject.body) {
@@ -285,48 +315,73 @@ function animate() {
 
     const deltaTime = clock.getDelta();
 
-     // Calcula a diferença entre a posição alvo (do mouse) e a posição atual da cesta
+    // Calcula a diferença entre a posição alvo (do mouse) e a posição atual da cesta
     const distanciaX = targetCestaX - cestaBody.position.x;
+    // --- LÓGICA DE PAUSE ---
+    // Se o jogo NÃO estiver pausado, atualiza tudo
+    if (!isPaused) {
+        // Define uma velocidade proporcional à distância. O '10' é um fator de "força".
+        // Quanto maior o número, mais rápido a cesta seguirá o mouse.
+        const distanciaX = targetCestaX - cestaBody.position.x;
+        // Aplica a velocidade ao corpo físico da cesta
+        const velocidadeX = distanciaX * 10;
+        cestaBody.velocity.x = velocidadeX;
+        // 1. Atualiza o mundo da física
+        world.step(1 / 60, deltaTime, 10);
+        // 2. Sincroniza a posição da cesta (visual e física)
+        cestaGroup.position.copy(cestaBody.position);
+        cestaGroup.quaternion.copy(cestaBody.quaternion);
+        // 3. Sincroniza todas as bolinhas e remove as que saíram da tela
+        for (let i = objetosNoMundo.length - 1; i >= 0; i--) {
+            const obj = objetosNoMundo[i];
+            obj.mesh.position.copy(obj.body.position);
+            obj.mesh.quaternion.copy(obj.body.quaternion);
 
-    // Define uma velocidade proporcional à distância. O '10' é um fator de "força".
-    // Quanto maior o número, mais rápido a cesta seguirá o mouse.
-    const velocidadeX = distanciaX * 10;
+            // Remove a bolinha se ela cair muito para baixo, para otimizar o jogo
+            /*if (obj.body.position.y < -20 && !obj.removeTimer) {
+                // Bolinha caiu no chão e ainda não tem um timer
+                obj.removeTimer = setTimeout(() => {
+                    // Função para remover a bolinha (criaremos abaixo)
+                    fadeAndRemoveBall(obj);
+                }, 2000); // 5000 milissegundos = 5 segundos
+            }*/
 
-    // Aplica a velocidade ao corpo físico da cesta
-    cestaBody.velocity.x = velocidadeX;
-
-    // 1. Atualiza o mundo da física
-    world.step(1 / 60, deltaTime, 10);
-
-    // 2. Sincroniza a posição da cesta (visual e física)
-    cestaGroup.position.copy(cestaBody.position);
-    cestaGroup.quaternion.copy(cestaBody.quaternion);
-
-    // 3. Sincroniza todas as bolinhas e remove as que saíram da tela
-    for (let i = objetosNoMundo.length - 1; i >= 0; i--) {
-        const obj = objetosNoMundo[i];
-        obj.mesh.position.copy(obj.body.position);
-        obj.mesh.quaternion.copy(obj.body.quaternion);
-
-        // Remove a bolinha se ela cair muito para baixo, para otimizar o jogo
-        /*if (obj.body.position.y < -20 && !obj.removeTimer) {
-            // Bolinha caiu no chão e ainda não tem um timer
-            obj.removeTimer = setTimeout(() => {
-                // Função para remover a bolinha (criaremos abaixo)
-                fadeAndRemoveBall(obj);
-            }, 2000); // 5000 milissegundos = 5 segundos
-        }*/
-
-        // Remove a bolinha imediatamente se ela estiver MUITO abaixo (segurança)
-        if (obj.body.position.y < -100) {
-            removeBall(obj);
-            objetosNoMundo.splice(i, 1);
+            // Remove a bolinha imediatamente se ela estiver MUITO abaixo (segurança)
+            if (obj.body.position.y < -100) {
+                removeBall(obj);
+                objetosNoMundo.splice(i, 1);
+            }
         }
     }
-
     // 4. Renderiza a cena na tela
     renderer.render(scene, camera);
 }
+
+const pauseScreen = document.getElementById('pauseScreen');
+const guiContainer = gui.domElement;
+guiContainer.style.display = 'none'; // Esconde o GUI por padrão
+
+function togglePause() {
+    isPaused = !isPaused;
+    if (isPaused) {
+        pauseScreen.style.display = 'block';
+        guiContainer.style.display = 'block'; // Mostra o GUI no pause
+        clearInterval(ballTimer); // Para de criar bolas
+        document.body.style.cursor = 'default'; // cursor aparece para facilitar
+    } else {
+        pauseScreen.style.display = 'none';
+        guiContainer.style.display = 'none'; // Esconde o GUI
+        const ballInterval = 1000 / controles.velocidadeBolas;
+        ballTimer = setInterval(createBall, ballInterval); // Volta a criar bolas
+        document.body.style.cursor = 'none'; //cursor desaparece
+    }
+}
+
+window.addEventListener('keydown', (event) => {
+    if (event.key === 'p' || event.key === 'P') {
+        togglePause();
+    }
+});
 
 // --- Ajuste de janela do navegador ---
 window.addEventListener('resize', () => {
@@ -334,5 +389,5 @@ window.addEventListener('resize', () => {
     camera.updateProjectionMatrix();
     renderer.setSize(window.innerWidth, window.innerHeight);
 });
-
+document.body.style.cursor = 'none';
 animate();
