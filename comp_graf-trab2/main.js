@@ -16,11 +16,17 @@ scene.fog = new THREE.Fog(corDoCeu, 30, 150); // A névoa agora combina com o c�
 const camera = new THREE.PerspectiveCamera(75, window.innerWidth / window.innerHeight, 0.1, 1000);
 camera.position.set(0, 5, 35);
 
+// --- SETUP DE ÁUDIO ---
+const listener = new THREE.AudioListener();
+camera.add(listener);
+
 const renderer = new THREE.WebGLRenderer({ antialias: true });
 renderer.setSize(window.innerWidth, window.innerHeight);
 renderer.shadowMap.enabled = true;
 document.body.appendChild(renderer.domElement);
+
 let isPaused = false;
+
 const activeParticles = []; // Array para guardar as partículas da explosão
 
 // Luz Hemisférica: Simula a luz do céu (azulada) e a luz rebatida do chão (amarronzada)
@@ -42,10 +48,37 @@ scene.add(directionalLight);
 
 const loader = new GLTFLoader();
 const textureLoader = new THREE.TextureLoader();
+const audioLoader = new THREE.AudioLoader();
+
+const pontoSound = new THREE.Audio(listener);
+const groundSound = new THREE.Audio(listener);
+const backgroundSound = new THREE.Audio(listener);
+
+
+
+audioLoader.load('sounds/pontoSound.wav', function(buffer) {
+    pontoSound.setBuffer(buffer);
+    pontoSound.setLoop(false); // Garante que o som não repita
+    pontoSound.setVolume(0.1);   // Define o volume (de 0 a 1)
+});
+
+audioLoader.load('sounds/groundSound.wav', function(buffer) {
+    groundSound.setBuffer(buffer);
+    groundSound.setLoop(false); // Garante que o som não repita
+    groundSound.setVolume(0.1);   // Define o volume (de 0 a 1)
+});
+
+audioLoader.load('sounds/music.mp3', function(buffer) {
+    backgroundSound.setBuffer(buffer);
+    backgroundSound.setLoop(true);
+    backgroundSound.setVolume(0.5);   // Define o volume (de 0 a 1)
+
+    backgroundSound.play();
+});
 
 // Lista dos modelos que compõem o seu cenário
 const sceneParts = [
-    'modelo3D/arvore_convertido.glb'
+    'modelo3D/arvore.glb'
 ];
 
 // Cria uma "promessa" de carregamento para cada modelo
@@ -244,12 +277,16 @@ function createBall() {
                 score += ballBody.points;
                 scoreElement.innerText = `Pontos: ${score}`;
                 ballBody.points = 0;
+
+                // Efeito sonoro ao ganhar ponto
+                if (pontoSound.isPlaying) pontoSound.stop();
+                pontoSound.play();
             }
             createExplosion(ballBody.position, ballObject.mesh.material.color);
             // Inicia o efeito de desintegração após 2 segundos
             setTimeout(() => {
                 removeBall(ballObject);
-            }, 500); // 2 segundos
+            }, 3500); // 2 segundos
 
         } else if (contactTarget === groundBody) {
             // --- COLISÃO COM O CHÃO ---
@@ -263,7 +300,10 @@ function createBall() {
             // Inicia o efeito de desintegração após 5 segundos
             setTimeout(() => {
                 removeBall(ballObject);
-            }, 5000); // 5 segundos
+            }, 4000); // 5 segundos
+
+            if (groundSound.isPlaying) groundSound.stop();
+            groundSound.play();
         }
     });
 
@@ -308,7 +348,13 @@ function removeBall(ballObject) {
 // 4. CONTROLES E INTERATIVIDADE (MOUSE, GUI)
 
 // --- CONTROLE DA CESTA PELO MOUSE ---
-window.addEventListener('mousemove', (event) => {
+window.addEventListener('mousemove', (event) => {   
+
+    // Libera o audio para ser tocado no navegador
+    if (listener.context.state === 'suspended') {
+        listener.context.resume();
+    };
+       
     const x = (event.clientX / window.innerWidth) * 2 - 1;
     const vector = new THREE.Vector3(x, 0, 0.5).unproject(camera);
     const dir = vector.sub(camera.position).normalize();
@@ -410,12 +456,22 @@ function togglePause() {
         guiContainer.style.display = 'block'; // Mostra o GUI no pause
         clearInterval(ballTimer); // Para de criar bolas
         document.body.style.cursor = 'default'; // cursor aparece para facilitar
+
+        if (backgroundSound.isPlaying) {
+            backgroundSound.pause();
+        }
+
     } else {
         pauseScreen.style.display = 'none';
         guiContainer.style.display = 'none'; // Esconde o GUI
         const ballInterval = 1000 / controles.velocidadeBolas;
         ballTimer = setInterval(createBall, ballInterval); // Volta a criar bolas
         document.body.style.cursor = 'none'; //cursor desaparece
+
+        if (!backgroundSound.isPlaying && listener.context.state === 'running') {
+            backgroundSound.play();
+        }
+
     }
 }
 
