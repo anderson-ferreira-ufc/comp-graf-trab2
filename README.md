@@ -16,8 +16,9 @@ Servidor local para servir arquivos via HTTP ( Live Server no VS Code, http-serv
 Atenção: Abrir os arquivos diretamente com file:// não funcionará corretamente devido às restrições de módulos ES (import/export).
 
 ### Clonando o Repositório
-git clone https://github.com/anderson-ferreira-ufc/comp_graf-trab2.git
-cd comp_graf-trab2
+git clone https://github.com/anderson-ferreira-ufc/comp_graf-trab2.git<br>
+cd comp_graf-trab2<br>
+
 
 ### Opção 1: Usando a Extensão "Live Server" 
 - Instale o VS Code: Se ainda não tiver, baixe e instale o Visual Studio Code.
