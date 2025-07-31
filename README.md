@@ -2,7 +2,7 @@
 
 ## Apple Rain - Descrição do projeto 
 
-Aple Rain é um jogo 3D em que o objetivo é pegar as maçãs que estão caindo da árvore com uma cesta movida pelo mouse. A cada maçã coletada, os pontos do jogador vão aumentando. No jogo existem maçãs normais e as douradas que dão pontuação maior. O jogo foi desenvolvido utilizando as bibliotecas Three.js para renderização gráfica e Cannon.js para simulação física.  
+Apple Rain é um jogo 3D em que o objetivo é pegar as maçãs que estão caindo da árvore com uma cesta movida pelo mouse. A cada maçã coletada, os pontos do jogador vão aumentando. No jogo existem maçãs normais e as douradas que dão pontuação maior. O jogo foi desenvolvido utilizando as bibliotecas Three.js para renderização gráfica e Cannon.js para simulação física.  
  
 A ambientação do jogo consiste em um cenário de floresta, trilha sonora e feedback sonoro de pontuação. O jogo também oferece a funcionalidade de pausa e um painel de controle (dat.gui) que permite ao jogador ajustar parâmetros como a gravidade e a frequência de surgimento das maçãs, adaptando a dificuldade conforme preferência.
 
