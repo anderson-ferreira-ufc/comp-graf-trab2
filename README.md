@@ -9,7 +9,15 @@ A ambientação do jogo consiste em um cenário de floresta, trilha sonora e fee
 ## Como Rodar 
 
 ### Pré-requisitos
-Você precisará de um navegador web (como Google Chrome, Mozilla Firefox, Microsoft Edge ou Brave) e um ambiente para servir arquivos localmente. 
+Navegador com suporte a módulos ES6 (ex.: Chrome, Firefox, Edge)
+
+Servidor local para servir arquivos via HTTP ( Live Server no VS Code, http-server do Node.js, ou Python HTTP server)
+
+Atenção: Abrir os arquivos diretamente com file:// não funcionará corretamente devido às restrições de módulos ES (import/export).
+
+### Clonando o Repositório
+git clone https://github.com/anderson-ferreira-ufc/comp_graf-trab2.git
+cd comp_graf-trab2
 
 ### Opção 1: Usando a Extensão "Live Server" 
 - Instale o VS Code: Se ainda não tiver, baixe e instale o Visual Studio Code.
@@ -41,9 +49,9 @@ A cesta é construída visualmente no Three.js a partir de um conjunto de malhas
 
 ### Maçãs - tipos e características
 
-*Maçãs Normais:* Concedem 1 ponto.
-*Maçãs Douradas:* Têm 10% de chance de aparecer, valem 5 pontos e são visualmente distintas por uma coloração 0xe8e864 e propriedade emissive.
-*Maçãs de Vidro:* Possuem 25% de chance de aparecer e subtraem 1 ponto se caírem no chão, caracterizadas por transparent: true e opacity: 0.5.
+*Maçãs Normais:* Concedem 1 ponto.<br>
+*Maçãs Douradas:* Têm 10% de chance de aparecer, valem 5 pontos e são visualmente distintas por uma coloração 0xe8e864 e propriedade emissive.<br>
+*Maçãs de Vidro:* Possuem 25% de chance de aparecer e subtraem 1 ponto se caírem no chão, caracterizadas por transparent: true e opacity: 0.5.<br>
 
 Todas as maçãs são representadas por esferas (THREE.SphereGeometry(1, 5, 5)) com detalhes de caule e folha. Após colidirem com a cesta ou o chão, são removidas da cena visual (scene.remove) e do mundo físico (world.removeBody) após 3.5 segundos (coleta) ou 4 segundos (chão).
 
@@ -84,13 +92,13 @@ Todos os sons são gerenciados por um THREE.AudioListener anexado à câmera, ga
 
 ## Equipe
 
-Anderson Ferreira
-Ryan Gomes
-Junior Benedito Moreira
-Arthur Vieira
-Juliana Barboza
-Elizeu Duarte
-Eduardo Castro
-Jhonanthan Wyllian
+Anderson Ferreira<br>
+Ryan Gomes<br>
+Junior Benedito Moreira<br>
+Arthur Vieira<br>
+Juliana Barboza<br>
+Elizeu Duarte<br>
+Eduardo Castro<br>
+Jhonanthan Wyllian<br>
 
 
