@@ -8,6 +8,32 @@ A ambientação do jogo consiste em um cenário de floresta, trilha sonora e fee
 
 ## Como Rodar 
 
+### Pré-requisitos
+Você precisará de um navegador web (como Google Chrome, Mozilla Firefox, Microsoft Edge ou Brave) e um ambiente para servir arquivos localmente. 
+
+### Opção 1: Usando a Extensão "Live Server" 
+- Instale o VS Code: Se ainda não tiver, baixe e instale o Visual Studio Code.
+- Vá para a aba de Extensões (Ctrl+Shift+X ou Cmd+Shift+X). Procure por "Live Server" (do autor Ritwick Dey) e clique em "Install".
+- No VS Code, vá em File > Open Folder (ou Arquivo > Abrir Pasta). Navegue até a pasta onde você salvou todos os arquivos do jogo.
+- Com a pasta do projeto aberta no VS Code, clique com o botão direito do mouse no arquivo index.html ou game.html. Selecione a opção "Open with Live Server".
+
+
+### Opção 2: Usando um Servidor HTTP com Python
+- Abra o Terminal (Linux/macOS) ou o Prompt de Comando/PowerShell (Windows). Digite python --version ou python3 --version. Se você vir uma versão do Python, ele está instalado. Se não, você precisará instalá-lo.
+
+- No Terminal/Prompt de Comando, use o comando cd para navegar até a pasta onde você salvou os arquivos do jogo.
+- Dentro da pasta do projeto, digite um dos seguintes comandos:
+Para Python 3: python3 -m http.server
+Para Python 2: python -m SimpleHTTPServer
+
+- Você verá uma mensagem indicando que o servidor foi iniciado
+- Abra seu navegador web e digite o endereço http://localhost:8000.
+
+### Opção 3: Outros Servidores Web Locais
+Se você já possui um servidor web local configurado (como Apache, Nginx ou Node.js http-server), coloque a pasta do projeto no diretório de serviço do seu servidor e acesse via a URL correspondente (ex: http://localhost/comp-graf-trab2/index.html).
+
+Agora é só jogar! :)
+
 ## Características do Jogo
 
 ### Cesta
@@ -42,13 +68,29 @@ Além da interação com o mouse, um painel de controle dat.gui oferece ao jogad
 ### Músicas e Feedback Sonoro
 Todos os sons são gerenciados por um THREE.AudioListener anexado à câmera, garantindo que o áudio seja espacializado corretamente.
 
-Música de Fundo: Uma trilha sonora (music.mp3) é carregada e reproduzida em loop (setLoop(true)), com volume definido para 0.5.
+*Música de Fundo:* Uma trilha sonora (music.mp3) é carregada e reproduzida em loop (setLoop(true)), com volume definido para 0.5.
 
-Feedback de Pontuação (pontoSound.wav): Um som é reproduzido quando uma maçã é coletada na cesta, com volume 0.1.
+*Feedback de Pontuação (pontoSound.wav):* Um som é reproduzido quando uma maçã é coletada na cesta, com volume 0.1.
 
-Feedback de Chão (groundSound.wav): Um som diferente é emitido quando uma maçã colide com o chão, também com volume 0.1.
+*Feedback de Chão (groundSound.wav):* Um som diferente é emitido quando uma maçã colide com o chão, também com volume 0.1.
 
-Todos os sons são gerenciados por um THREE.AudioListener anexado à câmera, garantindo que o áudio seja espacializado corretamente.
+Todos os sons são gerenciados por um THREE.AudioListener anexado à câmera, garantindo que o áudio seja posicionado corretamente.
 
 ## Referências
+
+*Efeitos Sonoros:* Os efeitos sonoros (SFX) foram gerados por meio do software Bfxr, que cria sons de 8-bit e 16-bit. A ferramenta garante que os efeitos criados sejam de domínio público, permitindo seu uso livremente no projeto.
+
+*Trilha Sonora:* As faixas musicais de fundo são provenientes do acervo do site Freesound.org, um repositório de áudio sob licenças Creative Commons. As músicas foram escolhidas especificamente para se adequarem à atmosfera do jogo, com a devida consideração às suas licenças de uso.
+
 ## Equipe
+
+Anderson Ferreira
+Ryan Gomes
+Junior Benedito Moreira
+Arthur Vieira
+Juliana Barboza
+Elizeu Duarte
+Eduardo Castro
+Jhonanthan Wyllian
+
+
